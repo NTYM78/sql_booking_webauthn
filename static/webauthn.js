@@ -1,9 +1,33 @@
-document.getElementById('registerButton').addEventListener('click', register);
-document.getElementById('loginButton').addEventListener('click', login);
+const registerButton = document.getElementById('registerButton');
+if (registerButton) {
+    registerButton.addEventListener('click', registerUser);
+}
 
-function showMessage(message, isError = false) {
-    const messageElement = document.getElementById('message');
-    
+const managerLoginPageButton = document.getElementById('managerLoginPage');
+if (managerLoginPageButton) {
+    managerLoginPageButton.addEventListener('click', function () {
+        window.location.href = "managerLogin.html";
+    });
+}
+
+const userLoginPageButton = document.getElementById('userLoginPage');
+if (userLoginPageButton) {
+    userLoginPageButton.addEventListener('click', function () {
+        window.location.href = "userLoginPage.html"
+    })
+}
+
+const managerLoginButton = document.getElementById('managerLogin');
+if (managerLoginButton) {
+    managerLoginButton.addEventListener('click', managerLogin);
+}
+
+// Initialise variables
+var data;
+
+function showMessage(elementId, message, isError = false) {
+    const messageElement = document.getElementById(elementId);
+
     if (!messageElement) {
         console.error('Message element not found');
         return;
@@ -13,55 +37,29 @@ function showMessage(message, isError = false) {
     messageElement.style.color = isError ? 'red' : 'green';
 }
 
-async function register() {
-    const username = document.getElementById('username').value;
+function showBindMessage(message, isError = false) {
+    const messageElement = document.getElementById('bindmessage');
 
-    try {
-        const response = await fetch('http://localhost:8082/users/register/begin', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username})
-        });
-
-        if (!response.ok) {
-            const msg = await response.json();
-            throw new Error('User already exists or failed to get registration options from server: ' + msg);
-        }
-
-        const { options, session_id } = await response.json();
-
-        console.log(options)
-        console.log(session_id)
-
-        // Start WebAuthn registration with modified options
-        const attestationResponse = await SimpleWebAuthnBrowser.startRegistration(options.publicKey);
-
-        // Send attestation response to server
-        const verificationResponse = await fetch(`http://localhost:8082/users/register/finish?session_id=${session_id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(attestationResponse)
-        });
-
-        const msg = await verificationResponse.json();
-        if (verificationResponse.ok) {
-            showMessage("Registration successful: " + msg, false);
-        } else {
-            showMessage("Registration failed: " + msg, true);
-        }
-    } catch (error) {
-        showMessage('Error: ' + error.message, true);
+    if (!messageElement) {
+        console.error('Message element not found');
+        return;
     }
+
+    messageElement.textContent = message;
+    messageElement.style.color = isError ? 'red' : 'green';
 }
 
-async function login() {
-    const username = document.getElementById('username').value;
+document.getElementById('registerUserContent').style.display = 'none';
+
+async function managerLogin() {
+    const username = document.getElementById('managerUsername').value;
 
     try {
-        const response = await fetch('http://localhost:8082/users/login/begin', {
+        const response = await fetch('http://localhost:8082/user/login/begin', {
             method: 'POST',
+            credentials: 'include', // Include cookies in the request
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({username})
+            body: JSON.stringify({ username, "isManager": 1 })
         });
 
         if (!response.ok) {
@@ -73,36 +71,353 @@ async function login() {
 
         const assertionResponse = await SimpleWebAuthnBrowser.startAuthentication(options.publicKey);
 
-        const verificationResponse = await fetch(`http://localhost:8082/users/login/finish?session_id=${session_id}`, {
+        const verificationResponse = await fetch(`http://localhost:8082/manager/login/finish?session_id=${session_id}`, {
             method: 'POST',
+            credentials: 'include', // Include cookies in the request
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(assertionResponse)
+        });
+        
+        var {message, userid } = await verificationResponse.json();
+        if (verificationResponse.ok) {
+            user_id = userid;
+            showMessage('managerLoginMessage', "Login successful: " + message, false);
+            isManagerLoggedIn();
+            window.location.reload();
+        } else {
+            showMessage('managerLoginMessage', "Login failed: " + message, true);
+        }
+    } catch (error) {
+        showMessage('managerLoginMessage', 'Error: ' + error.message, true);
+    }
+}
+
+
+async function registerUser() {
+    const username = document.getElementById('username').value;
+    const icNum = document.getElementById('bindUserIC').value;
+
+    try {
+        const bindResponse = await fetch('http://localhost:8082/user/getUserID', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ icNum })
+        })
+
+        console.log("bindResponse: ", bindResponse);
+
+        if (!bindResponse.ok) {
+            const msg = await bindResponse.json();
+            throw new Error(msg);
+        } else {
+            showBindMessage("User IC found and bindable", false)
+        }
+
+    } catch (error) {
+        showBindMessage('Error: ' + error.message, true)
+        return
+    }
+
+    try {
+        const response = await fetch('http://localhost:8082/user/register/begin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        if (!response.ok) {
+            const msg = await response.json();
+            throw new Error('User already exists or failed to get registration options from server: ' + msg);
+        }
+
+        const { options, session_id } = await response.json();
+
+        console.log("options:", options)
+        console.log("Session id", session_id)
+
+        // Start WebAuthn registration with modified options
+        const attestationResponse = await SimpleWebAuthnBrowser.startRegistration(options.publicKey);
+
+        console.log("attestation", attestationResponse)
+
+        // Send attestation response to server
+        const verificationResponse = await fetch(`http://localhost:8082/user/register/finish?session_id=${session_id}&ic=${icNum}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(attestationResponse)
         });
 
         const msg = await verificationResponse.json();
         if (verificationResponse.ok) {
-            showMessage("Login successful: " + msg, false);
+            uploadInitialPhoto();
+            showMessage("message", "Registration successful: " + msg, false);
         } else {
-            showMessage("Login failed: " + msg, true);
+            showMessage("message", "Registration failed: " + msg, true);
         }
     } catch (error) {
-        showMessage('Error: ' + error.message, true);
+        showMessage("message" ,'Error: ' + error.message, true);
     }
 }
 
-// function base64UrlToUint8Array(base64Url) {
+registerUserPage = document.getElementById('registerUserContent');
 
-//     if (typeof base64Url !== 'string') {
-//         console.error('Expected base64Url to be a string but got:', base64Url);
-//         return new Uint8Array();
-//     }
+async function uploadInitialPhoto() {
+
+    const username = document.getElementById('username').value;
     
-//     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-//     const binaryString = atob(base64);
-//     const len = binaryString.length;
-//     const bytes = new Uint8Array(len);
-//     for (let i = 0; i < len; i++) {
-//         bytes[i] = binaryString.charCodeAt(i);
-//     }
-//     return bytes;
-// }
+    if (data == null) {
+        alert('you cannot register without a photo');
+        return;
+    }
+
+    const initialPhoto = data.split(",")[1];
+    
+    const response = await fetch ('http://localhost:8082/user/UploadInitialPhoto', {
+        method: 'PUT',
+        credentials: 'include', // Include cookies in the request
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, initialPhoto })
+    });
+    if (!response.ok) {
+        const msg = await response.json();
+        console.error('Error uploading initial image', error);
+        showMessage('initialPhotoMessage', 'Failed uploading image', true)
+        return
+    }
+    showMessage('initialPhotoMessage', 'Successfully uploaded image', false)
+}
+
+async function isManagerLoggedIn() {
+    const response = await fetch('http://localhost:8082/manager/GetManagerLoginStatus', {
+        method: 'GET',
+        credentials: 'include', // Include cookies in the request
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+        const msg = await response.json();
+        if (registerUserPage) {
+            registerUserPage.innerHTML = `
+            <div class="container mt-5">    
+                <h3 class="text-center">Nice try. You are not logged in as manager.</h3>
+            </div>
+            `;
+        }
+        throw new Error('Failed to get login status: ' + msg);
+    }
+
+    document.getElementById('managerLoginContent').style.display = 'none';
+    document.getElementById('registerUserContent').style.display = 'block';
+}
+
+let allCredentials = [];
+
+async function getCredentialList() {
+    selectedUser = null;
+
+    // Show loading spinner
+    const userCredContainer = document.createElement('div');
+    userCredContainer.id = "userCredContainer";
+    userCredContainer.className = "container mt-3";
+    userCredContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    const existingContainer = document.getElementById('userCredContainer');
+    if(existingContainer) {
+        existingContainer.remove();
+    } selectedSlot = null;
+
+    credentialList = document.getElementById('credentialList');
+    if (credentialList) {
+        credentialList.appendChild(userCredContainer);
+    }
+
+    await fetch(`http://localhost:8082/user/GetCredentialList`)
+    .then(async response => {
+        if (!response.ok) {
+            // const msg = await response.json();
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        userCredContainer.innerHTML = '';
+
+        if (!data.credential || data.credential.length === 0) {
+            slotContainer.innerHTML = '<p> No credentials available</p>'
+            return;
+        }
+
+        allCredentials = data.credential;
+
+        displayCredentials(allCredentials);
+
+    })
+    .catch(error => {
+        console.error("Error fetching credentials: ", error);
+        userCredContainer.innerHTML = '<p class="text-danger">Failed to retrieve credentials. Please try again later.</p>';
+    })
+}
+
+function displayCredentials(credentials) {
+    const userCredContainer = document.querySelector('.user-cred-container');
+    userCredContainer.innerHTML = '';
+
+    credentials.forEach(cred => {
+        const date = new Date(cred.createdAt.replace(" ", "T"));
+        const options = {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', seconds: '2-digit', hour12: true}
+
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'col-md-6 card mb-3';
+
+        cardDiv.innerHTML = `
+            <div class="card-body">
+                <h5 class="card-title">${cred.name}</h5>
+                <p class="card-text">
+                    Username: ${cred.username} <br>
+                    User ID: ${cred.userID} <br>
+                    Credential ID: ${cred.credentialID} <br>
+                    Created At: ${date.toLocaleString('en-UK', options)} <br>
+                </p>
+                <button class="btn btn-danger delete-credential" data-credentialid="${cred.credentialID}">Delete</button>
+            </div>
+        `;
+        userCredContainer.append(cardDiv);
+    });
+
+    document.querySelectorAll('.delete-credential').forEach(button => {
+        let confirmState = false;
+
+        button.addEventListener('click', function() {
+            const credentialID = this.getAttribute('data-credentialid');
+
+            document.querySelectorAll('.delete-credential').forEach(btn => {
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-danger');
+                btn.textContent = "Delete";
+                // confirmState = false;
+            })
+
+            if (!confirmState) {
+                this.textContent = "Confirm delete?";
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-warning');
+                confirmState = true;
+            } else {
+                deleteCredential(credentialID, this);
+                confirmState = false;
+            }
+
+            console.log('Delete credential ID: ', credentialID);
+        });
+    });
+}
+
+searchInputField = document.getElementById('searchInput');
+if (searchInputField) {
+    searchInputField.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+
+        const filteredCredentials = allCredentials.filter(cred => {
+            return cred.name.toLowerCase().includes(searchTerm) ||
+                   cred.username.toLowerCase().includes(searchTerm)
+        });
+    displayCredentials(filteredCredentials);
+    });
+}
+
+async function deleteCredential(credentialID, button) {
+    try {
+        const response = await fetch(`http://localhost:8082/user/DeleteCredential/${credentialID}`, {
+            method: 'DELETE', 
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete credential');
+        }
+
+        button.closest('.card').remove();
+        console.log(`Credential ${credentialID} deleted successfully`);
+    } catch (error) {
+        console.error("Error deleting credential: ", error);
+        button.textContent = "Delete";
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-danger');
+    }
+}
+
+getCredentialList();
+isManagerLoggedIn();
+
+// ----------------------- Camera section ----------------------- //
+video = document.querySelector("#registerVideoElement");
+photo = document.getElementById('initialPhoto');
+takePhotoButton = document.getElementById('takeInitialPhotoButton');
+canvas = document.getElementById('registerCanvas');
+output = document.getElementById('registerOutput');
+
+if (output) {
+    output.style.display = 'none';
+}
+
+if (takePhotoButton) {
+    takePhotoButton.addEventListener('click', takeInitialPicture);
+}
+
+navigator.permissions.query({ name: 'camera' })
+    .then((permissionObj) => {
+        console.log(permissionObj.state);
+        if (permissionObj.state === "granted") {
+            console.log("can register i guess?");
+        }
+    })
+    .catch((error) => {
+        console.log('Got error: ', error);
+    })
+if (navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+            video.srcObject = stream;
+        })
+        .catch(function (error) {
+            console.log("Something went wrong: camera object not found");
+        });
+}
+
+function takeInitialPicture() {
+    document.getElementById('registerVideoContainer').style.display = 'none';
+    output.style.display = 'flex';
+
+    canvas.style.display = 'none';
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    data = canvas.toDataURL("image/png");
+    photo.setAttribute("src", data);
+
+    console.log(data);
+
+    allowRetakeInitialPhoto();
+}
+
+function allowRetakeInitialPhoto() {
+    takePhotoButton.textContent = "Retake photo";
+    takePhotoButton.removeEventListener("click", takeInitialPicture);
+
+    takePhotoButton.addEventListener('click', function() {
+        data = null;
+
+        photo.removeAttribute('src');
+
+        takePhotoButton.textContent = "Take photo";
+        document.getElementById('registerVideoContainer').style.display = 'block';
+        output.style.display = 'none';
+        takePhotoButton.addEventListener('click', takeInitialPicture);
+    })
+}
