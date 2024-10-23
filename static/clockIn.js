@@ -218,6 +218,7 @@ async function getSlots() {
 
                 clockInbtn.addEventListener('click', function() {
                     slotID = slot.slotID;
+                    localStorage.setItem('slotName', slot.slotName);
                     localStorage.setItem('clockIn', slot.clockInTime);
                     localStorage.setItem('clockOut', slot.clockOutTime);
                     loginUser();
@@ -232,65 +233,19 @@ async function getSlots() {
 
                 clockOutbtn.addEventListener('click', function() {
                     slotID = slot.slotID;
+                    localStorage.setItem('slotName', slot.slotName);
                     localStorage.setItem('clockIn', slot.clockInTime);
                     localStorage.setItem('clockOut', slot.clockOutTime);
                     loginUser();
                 })
             }
-
             slotContainer.appendChild(slotDiv);  
-            
-        //     document.querySelectorAll('.select-slot').forEach(button => {
-        //     button.addEventListener('click', function () {
-        //         const slotID = this.getAttribute('data-slotid');
-        //         // const clockInTime = this.getAttribute('data-clockInTime');
-        //         // const clockOutTime = this.getAttribute('data-clockOutTime');
-
-        //         // Visual feedback for the selected slot
-        //         // document.querySelectorAll('.select-slot').forEach(btn => {
-        //         //     btn.classList.remove('btn-success');
-        //         //     btn.classList.add('btn-primary');
-        //         //     btn.innerHTML = "Select Slot";
-        //         // });
-
-        //         console.log(slot.clockInTime);
-        //         console.log(slot.clockOutTime);
-        //         localStorage.setItem('slotID', slotID);
-        //         localStorage.setItem('clockIn', slot.clockInTime);
-        //         localStorage.setItem('clockOut', slot.clockOutTime);
-
-        //         this.classList.remove('btn-primary');
-        //         this.classList.add('btn-success');
-        //         this.innerHTML = "Slot Selected";
-
-        //         console.log('Selected Slot ID:', slotID);
-        //         selectedSlot = slotID;
-        //     });
-        // });
         });
-
-          
-            // Create and display the slot list
-            // const slot = data.slotList[0];
-
-         
-            // console.log("time now: ", timeNow);
-            // console.log("oneHourBefore: ", oneHourBefore)
-            // console.log("End time: ", endTime)
-
-            // if (timeNow >= oneHourBefore && timeNow <= endTime) {
-
-                // Add event listeners for slot selection
-               
-            // } else {
-            //     // If not within 1 hour before the start time, show empty message
-            //     slotContainer.innerHTML = '<p>No slots available to clock in / clock out at this time.</p>';
-            // }
-        })
-        .catch(error => {
-            console.error("Error fetching slots: ", error);
-            slotContainer.innerHTML = '<p class="text-danger">Failed to retrieve slots. Please try again later.</p>';
-        });
+    })
+    .catch(error => {
+        console.error("Error fetching slots: ", error);
+        slotContainer.innerHTML = '<p class="text-danger">Failed to retrieve slots. Please try again later.</p>';
+    });
 }
 
 clockInPage = document.getElementById('clockInContent');
@@ -317,6 +272,7 @@ async function isLoggedIn() {
 
     document.getElementById('loginContent').style.display = 'none';
     document.getElementById('clockInContent').style.display = 'block';
+    // document.getElementById('slotTitle').style.display = 'none';
 
     // const selectedSlot = localStorage.getItem('slotID');
     // if (selectedSlot) {
@@ -328,11 +284,11 @@ async function isLoggedIn() {
     clockOutTime = localStorage.getItem('clockOut');
 
     if (clockInTime == "null" && clockOutTime == "null") {
-        console.log("entered");
+        document.getElementById('slotTitle').innerHTML = `<h1>Clock in for ${localStorage.getItem('slotName')}</h1>`;
         document.getElementById('clockInButton').style.display = 'inline';
         document.getElementById('clockOutButton').style.display = 'none';
     } else if (clockInTime != "null" && clockOutTime == "null") {
-        console.log("entered other");
+        document.getElementById('slotTitle').innerHTML = `<h1>Clock in for ${localStorage.getItem('slotName')}</h1>`;
         document.getElementById('clockInButton').style.display = 'none';
         document.getElementById('clockOutButton').style.display = 'inline';
     }
@@ -345,11 +301,9 @@ async function isLoggedIn() {
 
 async function clockIn() {
     if (data == null) {
-        alert('you cannot clock in without a photo');
+        alert('You cannot clock in without a photo');
         return;
     }
-
-    // selectedSlot = localStorage.getItem('slotID');
     const ClockInImg = data.split(",")[1];
 
     const timeNow = getCurrentDateTime();

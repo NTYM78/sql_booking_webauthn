@@ -24,21 +24,12 @@ if (managerLoginButton) {
 
 // Initialise variables
 var data;
+let editingUserId = null;
+let registerHandler = null;
+let editHandler = null;
 
 function showMessage(elementId, message, isError = false) {
     const messageElement = document.getElementById(elementId);
-
-    if (!messageElement) {
-        console.error('Message element not found');
-        return;
-    }
-
-    messageElement.textContent = message;
-    messageElement.style.color = isError ? 'red' : 'green';
-}
-
-function showBindMessage(message, isError = false) {
-    const messageElement = document.getElementById('bindmessage');
 
     if (!messageElement) {
         console.error('Message element not found');
@@ -92,10 +83,76 @@ async function managerLogin() {
     }
 }
 
+function openAddUserModal() {
+    showMessage('message', '', false)
+    showMessage('bindmessage', '', false)
+    showMessage('initialPhotoMessage', '', false)
+
+    document.getElementById('modalTitle').textContent = 'Register User';
+    document.getElementById('icField').style.display = 'block';
+    editingUserId = null;
+    resetPhotoState();
+    document.getElementById('username').value = '';
+    document.getElementById('bindUserIC').value = '';
+
+    document.getElementById('modalFooterButton').textContent = 'Register User';
+    const modalFooterButton = document.getElementById('modalFooterButton');
+
+    // If there was a previous event listener for editing, remove it
+    modalFooterButton.removeEventListener('click', registerHandler);
+    modalFooterButton.removeEventListener('click', editHandler);
+
+    // Define the register handler function only once
+    registerHandler = function() {
+        registerUser();
+    };
+
+    // Add the event listener for registering a user
+    modalFooterButton.addEventListener('click', registerHandler);
+
+    const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+    userModal.show();
+}
+
+function openEditUserModal(userId, username) {
+    showMessage('message', '', false)
+    showMessage('bindmessage', '', false)
+    showMessage('initialPhotoMessage', '', false)
+
+    document.getElementById('modalTitle').textContent = `Edit ${username}`;
+    document.getElementById('icField').style.display = 'none';
+    editingUserId = userId;
+    resetPhotoState();
+    document.getElementById('username').value = username;
+    
+    document.getElementById('modalFooterButton').textContent = 'Save changes';
+    const modalFooterButton = document.getElementById('modalFooterButton');
+
+    // If there was a previous event listener for registering, remove it
+    modalFooterButton.removeEventListener('click', registerHandler);
+    modalFooterButton.removeEventListener('click', editHandler);
+    
+    // Define the edit handler function only once
+    editHandler = function() {
+        uploadInitialPhoto(editingUserId);
+    };
+
+    // Add the event listener for editing a user
+    modalFooterButton.addEventListener('click', editHandler);
+
+    const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+    userModal.show();
+
+}
 
 async function registerUser() {
     const username = document.getElementById('username').value;
     const icNum = document.getElementById('bindUserIC').value;
+    
+    if (data == null) {
+        alert('Photo must be taken.');
+        return;
+    }
 
     try {
         const bindResponse = await fetch('http://localhost:8082/user/getUserID', {
@@ -110,11 +167,11 @@ async function registerUser() {
             const msg = await bindResponse.json();
             throw new Error(msg);
         } else {
-            showBindMessage("User IC found and bindable", false)
+            showMessage("bindmessage", "User IC found and bindable", false)
         }
 
     } catch (error) {
-        showBindMessage('Error: ' + error.message, true)
+        showMessage("bindmessage", 'Error: ' + error.message, true)
         return
     }
 
@@ -149,10 +206,11 @@ async function registerUser() {
 
         const msg = await verificationResponse.json();
         if (verificationResponse.ok) {
-            uploadInitialPhoto();
-            showMessage("message", "Registration successful: " + msg, false);
+            editingUserId = msg.userID
+            uploadInitialPhoto(editingUserId);
+            showMessage("message", "Registration successful: " + msg.message, false);
         } else {
-            showMessage("message", "Registration failed: " + msg, true);
+            showMessage("message", "Registration failed: " + msg.message, true);
         }
     } catch (error) {
         showMessage("message" ,'Error: ' + error.message, true);
@@ -161,22 +219,28 @@ async function registerUser() {
 
 registerUserPage = document.getElementById('registerUserContent');
 
-async function uploadInitialPhoto() {
+async function uploadInitialPhoto(editingUserId) {
 
     const username = document.getElementById('username').value;
-    
-    if (data == null) {
-        alert('you cannot register without a photo');
-        return;
+    let initialPhoto;
+    if (data != null) {
+        initialPhoto = data.split(",")[1];
+    } else {
+        initialPhoto = null;
     }
 
-    const initialPhoto = data.split(",")[1];
+    if (editingUserId == null) {
+        userID = '0';
+    } else {
+        userID = editingUserId;
+    }
+
     
     const response = await fetch ('http://localhost:8082/user/UploadInitialPhoto', {
         method: 'PUT',
         credentials: 'include', // Include cookies in the request
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, initialPhoto })
+        body: JSON.stringify({ userID, username, initialPhoto })
     });
     if (!response.ok) {
         const msg = await response.json();
@@ -184,7 +248,11 @@ async function uploadInitialPhoto() {
         showMessage('initialPhotoMessage', 'Failed uploading image', true)
         return
     }
-    showMessage('initialPhotoMessage', 'Successfully uploaded image', false)
+    if (data != null) {
+      showMessage('initialPhotoMessage', 'Successfully uploaded image', false);  
+    }
+    showMessage('message', 'Successfully changed name', false);
+    getCredentialList();
 }
 
 async function isManagerLoggedIn() {
@@ -279,6 +347,7 @@ function displayCredentials(credentials) {
                     Created At: ${date.toLocaleString('en-UK', options)} <br>
                 </p>
                 <button class="btn btn-danger delete-credential" data-credentialid="${cred.credentialID}">Delete</button>
+                <button class="btn btn-primary edit-credential" data-userid="${cred.userID}" data-credentialname="${cred.username}">Edit</button>
             </div>
         `;
         userCredContainer.append(cardDiv);
@@ -310,8 +379,18 @@ function displayCredentials(credentials) {
             console.log('Delete credential ID: ', credentialID);
         });
     });
+
+    document.querySelectorAll('.edit-credential').forEach(button => {
+        button.addEventListener('click', function() {
+            const userID = this.getAttribute('data-userID');
+            const credentialName = this.getAttribute('data-credentialname');
+
+            openEditUserModal(userID, credentialName);
+        });
+    });
 }
 
+// Search filter for credential list
 searchInputField = document.getElementById('searchInput');
 if (searchInputField) {
     searchInputField.addEventListener('input', function() {
@@ -322,6 +401,11 @@ if (searchInputField) {
                    cred.username.toLowerCase().includes(searchTerm)
         });
     displayCredentials(filteredCredentials);
+
+    // Show full list when the search is cleared
+    if (searchTerm === '') {
+        displayCredentials(allCredentials);
+    }
     });
 }
 
@@ -410,14 +494,14 @@ function allowRetakeInitialPhoto() {
     takePhotoButton.textContent = "Retake photo";
     takePhotoButton.removeEventListener("click", takeInitialPicture);
 
-    takePhotoButton.addEventListener('click', function() {
-        data = null;
+    takePhotoButton.addEventListener('click', resetPhotoState)
+}
 
-        photo.removeAttribute('src');
-
-        takePhotoButton.textContent = "Take photo";
-        document.getElementById('registerVideoContainer').style.display = 'block';
-        output.style.display = 'none';
-        takePhotoButton.addEventListener('click', takeInitialPicture);
-    })
+function resetPhotoState() {
+    data = null;
+    photo.removeAttribute('src');
+    takePhotoButton.textContent = "Take photo";
+    document.getElementById('registerVideoContainer').style.display= 'flex';
+    output.style.display = 'none';
+    takePhotoButton.addEventListener('click', takeInitialPicture);
 }
