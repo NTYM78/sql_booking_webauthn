@@ -181,13 +181,13 @@ async function getSlots() {
             }
 
         data.slotList.forEach(slot => {
-            const startTime = new Date(`${slot.date}T${slot.startTime}`);
-            const endTime = new Date(`${slot.date}T${slot.endTime}`);
+            const startTime = new Date(`${slot.slotDate}T${slot.startTime}`);
+            const endTime = new Date(`${slot.slotDate}T${slot.endTime}`);
             const timeNow = new Date();
             const oneHourBefore = new Date(startTime.getTime() - (60 * 60 * 1000)); // Time allowed to clock in before start time
             const oneHourAfter = new Date(endTime.getTime() + (60 * 60 * 1000)); // Time allowed to clock in after end time
             
-            const dateFormatted = formatDate(slot.date);
+            const dateFormatted = formatDate(slot.slotDate);
             const startTimeFormatted = formatTime(slot.startTime);
             const endTimeFormatted = formatTime(slot.endTime);
 
@@ -283,14 +283,16 @@ async function isLoggedIn() {
     clockInTime = localStorage.getItem('clockIn');
     clockOutTime = localStorage.getItem('clockOut');
 
-    if (clockInTime == "null" && clockOutTime == "null") {
+    if (clockInTime == "undefined" && clockOutTime == "undefined") {
+        console.log("Entered")
         document.getElementById('slotTitle').innerHTML = `<h1>Clock in for ${localStorage.getItem('slotName')}</h1>`;
         document.getElementById('clockInButton').style.display = 'inline';
         document.getElementById('clockOutButton').style.display = 'none';
-    } else if (clockInTime != "null" && clockOutTime == "null") {
+    } else if (clockInTime != "undefined" && clockOutTime == "undefined") {
         document.getElementById('slotTitle').innerHTML = `<h1>Clock in for ${localStorage.getItem('slotName')}</h1>`;
         document.getElementById('clockInButton').style.display = 'none';
         document.getElementById('clockOutButton').style.display = 'inline';
+        console.log("Entered other")
     }
 
     const { message, user_id } = await response.json();
@@ -417,7 +419,7 @@ function takePicture() {
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    data = canvas.toDataURL("image/png");
+    data = canvas.toDataURL("image/jpeg");
     photo.setAttribute("src", data);
 
     console.log(data);

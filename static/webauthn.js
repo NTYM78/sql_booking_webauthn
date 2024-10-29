@@ -482,7 +482,7 @@ function takeInitialPicture() {
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    data = canvas.toDataURL("image/png");
+    data = canvas.toDataURL("image/jpeg", 1);
     photo.setAttribute("src", data);
 
     console.log(data);
