@@ -54,7 +54,7 @@ async function managerLogin() {
         });
 
         if (!response.ok) {
-            const msg = await response.json();
+            const msg = await response.json(); 
             throw new Error('Failed to get login options from server: ' + msg);
         }
 
