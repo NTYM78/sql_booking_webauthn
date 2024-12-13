@@ -1,7 +1,7 @@
-const registerButton = document.getElementById('registerButton');
-if (registerButton) {
-    registerButton.addEventListener('click', registerUser);
-}
+// const registerButton = document.getElementById('registerButton');
+// if (registerButton) {
+//     registerButton.addEventListener('click', registerUser);
+// }
 
 const managerLoginPageButton = document.getElementById('managerLoginPage');
 if (managerLoginPageButton) {
@@ -28,25 +28,13 @@ let editingUserId = null;
 let registerHandler = null;
 let editHandler = null;
 
-function showMessage(elementId, message, isError = false) {
-    const messageElement = document.getElementById(elementId);
-
-    if (!messageElement) {
-        console.error('Message element not found');
-        return;
-    }
-
-    messageElement.textContent = message;
-    messageElement.style.color = isError ? 'red' : 'green';
-}
-
 document.getElementById('registerUserContent').style.display = 'none';
 
 async function managerLogin() {
     const username = document.getElementById('managerUsername').value;
 
     try {
-        const response = await fetch('http://localhost:8082/user/login/begin', {
+        const response = await fetch(`${common.apiUrl}/user/login/begin`, {
             method: 'POST',
             credentials: 'include', // Include cookies in the request
             headers: { 'Content-Type': 'application/json' },
@@ -62,31 +50,31 @@ async function managerLogin() {
 
         const assertionResponse = await SimpleWebAuthnBrowser.startAuthentication(options.publicKey);
 
-        const verificationResponse = await fetch(`http://localhost:8082/manager/login/finish?session_id=${session_id}`, {
+        const verificationResponse = await fetch(`${common.apiUrl}/manager/login/finish?session_id=${session_id}`, {
             method: 'POST',
             credentials: 'include', // Include cookies in the request
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(assertionResponse)
         });
         
-        var {message, userid } = await verificationResponse.json();
+        var {message} = await verificationResponse.json();
         if (verificationResponse.ok) {
-            user_id = userid;
-            showMessage('managerLoginMessage', "Login successful: " + message, false);
+            // user_id = userid;
+            common.showMessage('managerLoginMessage', "Login successful: " + message, false);
             isManagerLoggedIn();
             window.location.reload();
         } else {
-            showMessage('managerLoginMessage', "Login failed: " + message, true);
+            common.showMessage('managerLoginMessage', "Login failed: " + message, true);
         }
     } catch (error) {
-        showMessage('managerLoginMessage', 'Error: ' + error.message, true);
+        common.showMessage('managerLoginMessage', 'Error: ' + error.message, true);
     }
 }
 
 function openAddUserModal() {
-    showMessage('message', '', false)
-    showMessage('bindmessage', '', false)
-    showMessage('initialPhotoMessage', '', false)
+    common.showMessage('message', '', false)
+    common.showMessage('bindmessage', '', false)
+    common.showMessage('initialPhotoMessage', '', false)
 
     document.getElementById('modalTitle').textContent = 'Register User';
     document.getElementById('icField').style.display = 'block';
@@ -115,9 +103,9 @@ function openAddUserModal() {
 }
 
 function openEditUserModal(userId, username) {
-    showMessage('message', '', false)
-    showMessage('bindmessage', '', false)
-    showMessage('initialPhotoMessage', '', false)
+    common.showMessage('message', '', false)
+    common.showMessage('bindmessage', '', false)
+    common.showMessage('initialPhotoMessage', '', false)
 
     document.getElementById('modalTitle').textContent = `Edit ${username}`;
     document.getElementById('icField').style.display = 'none';
@@ -155,28 +143,26 @@ async function registerUser() {
     }
 
     try {
-        const bindResponse = await fetch('http://localhost:8082/user/getUserID', {
+        const bindResponse = await fetch(`${common.apiUrl}/user/getUserID`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ icNum })
         })
 
-        console.log("bindResponse: ", bindResponse);
-
         if (!bindResponse.ok) {
             const msg = await bindResponse.json();
             throw new Error(msg);
         } else {
-            showMessage("bindmessage", "User IC found and bindable", false)
+            common.showMessage("bindmessage", "User IC found and bindable", false)
         }
 
     } catch (error) {
-        showMessage("bindmessage", 'Error: ' + error.message, true)
+        common.showMessage("bindmessage", 'Error: ' + error.message, true)
         return
     }
 
     try {
-        const response = await fetch('http://localhost:8082/user/register/begin', {
+        const response = await fetch(`${common.apiUrl}/user/register/begin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username })
@@ -189,16 +175,11 @@ async function registerUser() {
 
         const { options, session_id } = await response.json();
 
-        console.log("options:", options)
-        console.log("Session id", session_id)
-
         // Start WebAuthn registration with modified options
         const attestationResponse = await SimpleWebAuthnBrowser.startRegistration(options.publicKey);
 
-        console.log("attestation", attestationResponse)
-
         // Send attestation response to server
-        const verificationResponse = await fetch(`http://localhost:8082/user/register/finish?session_id=${session_id}&ic=${icNum}`, {
+        const verificationResponse = await fetch(`${common.apiUrl}/user/register/finish?session_id=${session_id}&ic=${icNum}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(attestationResponse)
@@ -206,14 +187,14 @@ async function registerUser() {
 
         const msg = await verificationResponse.json();
         if (verificationResponse.ok) {
-            editingUserId = msg.userID
+            editingUserId = msg.userID;
             uploadInitialPhoto(editingUserId);
-            showMessage("message", "Registration successful: " + msg.message, false);
+            common.showMessage("message", "Registration successful: " + msg.message, false);
         } else {
-            showMessage("message", "Registration failed: " + msg.message, true);
+            common.showMessage("message", "Registration failed: " + msg.message, true);
         }
     } catch (error) {
-        showMessage("message" ,'Error: ' + error.message, true);
+        common.showMessage("message" ,'Error: ' + error.message, true);
     }
 }
 
@@ -236,7 +217,7 @@ async function uploadInitialPhoto(editingUserId) {
     }
 
     
-    const response = await fetch ('http://localhost:8082/user/UploadInitialPhoto', {
+    const response = await fetch (`${common.apiUrl}/user/UploadInitialPhoto`, {
         method: 'PUT',
         credentials: 'include', // Include cookies in the request
         headers: { 'Content-Type': 'application/json' },
@@ -245,18 +226,18 @@ async function uploadInitialPhoto(editingUserId) {
     if (!response.ok) {
         const msg = await response.json();
         console.error('Error uploading initial image', error);
-        showMessage('initialPhotoMessage', 'Failed uploading image', true)
+        common.showMessage('initialPhotoMessage', 'Failed uploading image', true)
         return
     }
     if (data != null) {
-      showMessage('initialPhotoMessage', 'Successfully uploaded image', false);  
+      common.showMessage('initialPhotoMessage', 'Successfully uploaded image', false);  
     }
-    showMessage('message', 'Successfully changed name', false);
+    common.showMessage('message', 'Successfully changed name', false);
     getCredentialList();
 }
 
 async function isManagerLoggedIn() {
-    const response = await fetch('http://localhost:8082/manager/GetManagerLoginStatus', {
+    const response = await fetch(`${common.apiUrl}/manager/GetManagerLoginStatus`, {
         method: 'GET',
         credentials: 'include', // Include cookies in the request
         headers: { 'Content-Type': 'application/json' },
@@ -299,7 +280,7 @@ async function getCredentialList() {
         credentialList.appendChild(userCredContainer);
     }
 
-    await fetch(`http://localhost:8082/user/GetCredentialList`)
+    await fetch(`${common.apiUrl}/user/GetCredentialList`)
     .then(async response => {
         if (!response.ok) {
             // const msg = await response.json();
@@ -411,7 +392,7 @@ if (searchInputField) {
 
 async function deleteCredential(credentialID, button) {
     try {
-        const response = await fetch(`http://localhost:8082/user/DeleteCredential/${credentialID}`, {
+        const response = await fetch(`${common.apiUrl}/user/DeleteCredential/${credentialID}`, {
             method: 'DELETE', 
             headers: {
                 'Content-Type': 'application/json'
@@ -452,9 +433,7 @@ if (takePhotoButton) {
 
 navigator.permissions.query({ name: 'camera' })
     .then((permissionObj) => {
-        console.log(permissionObj.state);
         if (permissionObj.state === "granted") {
-            console.log("can register i guess?");
         }
     })
     .catch((error) => {

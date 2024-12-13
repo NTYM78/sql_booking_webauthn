@@ -8,6 +8,9 @@
     <title>SQL Booking - User Login</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Google Fonts: Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <!-- css -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -57,21 +60,18 @@
 </head>
 
 <body>
-     <!-- Bootstrap-style banner -->
+    <!-- Bootstrap-style banner -->
     <!-- <div style="background-color: #5e1693;" class="text-white text-center p-5 mb-4"> -->
-    <div style="background: linear-gradient(340deg, rgba(30,8,245,1) 0%, rgba(120,5,216,1) 33%, rgba(141,4,209,1) 50%, rgba(175,3,198,1) 67%,rgba(254,0,172,1) 100%);"
+    <div style="background: linear-gradient(330deg, rgba(129,8,245,1) 0%, rgba(191,7,124,1) 50%, rgba(254,6,2,1) 100%);"
         class="text-white text-center p-5 mb-4">
         <div class="container d-flex justify-content-center align-item-center">
             <div>
-                <a href="/"><img src="resources/images/sql-logo.png" alt="Logo" class="sqlLogo"></a>
-            </div>
-            <div>
-                <!-- <h1 class="display-3 mb-0">Booking</h1> -->
-                <a href="/"><img src="resources/images/booking-logo.png" alt="Logo" class="bookingLogo"></a>
+                <a href="/"><img src="resources/images/sql-booking-logo.png" alt="Logo" class="sqlLogo"></a>
             </div>
         </div>
     </div>
-
+    
+    <!-- Login page content -->
     <div id="loginContent">
         <div class="container mt-5">
             <h1 class="text-center">User Login</h1>
@@ -97,6 +97,8 @@
             </div>
         </div>
     </div>
+
+    <!-- Clock in page content -->
     <div id="clockInContent">
         <div class="container mt-5">
             <div id="slotTitle"></div>
@@ -128,6 +130,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS for WebAuthn -->
     <script src="static/index.es5.umd.min.js"></script>
+    <script src="static/common.js"></script>
     <script src="static/webauthn.js"></script>
     <script src="static/clockIn.js"></script>
 </body>

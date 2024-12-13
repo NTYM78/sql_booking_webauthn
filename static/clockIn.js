@@ -1,17 +1,12 @@
-const userLoginButton = document.getElementById('userLoginButton');
-if (userLoginButton) {
-    userLoginButton.addEventListener('click', loginUser);
-}
-
 const getSlotsButton = document.getElementById('getslotsbutton');
 if (getSlotsButton) {
     getSlotsButton.addEventListener('click', getSlots)
 }
 
+// Clear slot list if name field change 
 const userNameField = document.getElementById('username');
 if (userNameField) {
     userNameField.addEventListener('change', function() {
-        console.log("username field was changed");
         clearSlotList();
     })
 }
@@ -25,11 +20,13 @@ const clockOutButton = document.getElementById('clockOutButton');
 if (clockOutButton) {
     clockOutButton.addEventListener('click', clockOut);
 }
+
+// Hide clock in page content first
 document.getElementById('clockInContent').style.display = 'none';
 
 // Initialise variables
 var userID = 0;
-let slotID;
+var slotID;
 var data;
 
 function formatDate(dateString) {
@@ -61,37 +58,17 @@ function getCurrentDateTime() {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-function formatDateTimeWithTime(clockInTime) {
-    const now = new Date();
-
-    // Extract the current date components
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // getMonth() is zero-based
-    const day = String(now.getDate()).padStart(2, '0');
-
-    // Combine the date with the provided time (clockInTime)
-    const formattedDateTime = `${year}-${month}-${day} ${clockInTime}`;
-
-    return formattedDateTime;
-}
-
 async function loginUser() {
-    showMessage("message", "", false);
-    
+    common.showMessage("message", "", false);
     const username = document.getElementById('username').value;
 
-    // if (selectedSlot == null) {
-    //     showMessage("message", "Please select a slot before logging in.", true);
-    //     return
-    // }
-
     if (!canLogin) {
-        showMessage("message","Please enable camera permission in order to login.", true);
+        common.common.showMessage("message","Please enable camera permission in order to login.", true);
         return
     }
 
     try {
-        const response = await fetch('http://localhost:8082/user/login/begin', {
+        const response = await fetch(`${common.apiUrl}/user/login/begin`, {
             method: 'POST',
             credentials: 'include', // Include cookies in the request
             headers: { 'Content-Type': 'application/json' },
@@ -107,7 +84,7 @@ async function loginUser() {
 
         const assertionResponse = await SimpleWebAuthnBrowser.startAuthentication(options.publicKey);
 
-        const verificationResponse = await fetch(`http://localhost:8082/user/login/finish?session_id=${session_id}&slot_id=${slotID}`, {
+        const verificationResponse = await fetch(`${common.apiUrl}/user/login/finish?session_id=${session_id}&slot_id=${slotID}`, {
             method: 'POST',
             credentials: 'include', // Include cookies in the request
             headers: { 'Content-Type': 'application/json' },
@@ -116,20 +93,14 @@ async function loginUser() {
 
         var { message, userid } = await verificationResponse.json(); 
         if (verificationResponse.ok) {
-            user_id = userid;
-
-            // Store user_id in localStorage
-            // localStorage.setItem('slotID', selectedSlot);
-
             isLoggedIn();
-            showMessage("Login successful: " + message, false);
-            // window.location.href = "userClockInPage.html";
+            common.showMessage("Login successful: " + message, false);
             window.location.reload();
         } else {
-            showMessage("Login failed: " + message, true);
+            common.showMessage("Login failed: " + message, true);
         }
     } catch (error) {
-        showMessage("message", 'Error: ' + error.message, true);
+        common.showMessage("message", 'Error: ' + error.message, true);
     }
 }
 
@@ -138,12 +109,10 @@ function clearSlotList() {
     if (existingContainer) {
         existingContainer.remove();
     }
-    // selectedSlot = null;
 }
 
 async function getSlots() {
-    showMessage("message", "", false);
-    // selectedSlot = null;
+    common.showMessage("message", "", false);
 
     // Show loading spinner
     const slotContainer = document.createElement('div');
@@ -153,7 +122,7 @@ async function getSlots() {
 
     const username = document.getElementById('username').value;
     if (username == "") {
-        showMessage("message", "Please enter a username to get slots.", true);
+        common.showMessage("message", "Please enter a username to get slots.", true);
         return
     }
     // Remove any existing slot container
@@ -162,12 +131,12 @@ async function getSlots() {
     slotLocation.appendChild(slotContainer);
 
     // Fetch the slots via API
-    await fetch(`http://localhost:8082/user/getUpcomingSlot?username=${username}`)
+    await fetch(`${common.apiUrl}/user/getUpcomingSlot?username=${username}`)
         .then(async response => {
             if (!response.ok) {
                 const msg = await response.json();
-                showMessage("message", "Error: " + msg, true);
-                throw new Error('Network response was not ok');
+                common.showMessage("message", "Error: " + msg, true);
+                throw new Error(msg);
             }
             return response.json();
         })
@@ -251,7 +220,7 @@ async function getSlots() {
 clockInPage = document.getElementById('clockInContent');
 
 async function isLoggedIn() {
-    const response = await fetch('http://localhost:8082/user/GetLoginStatus', {
+    const response = await fetch(`${common.apiUrl}/user/GetLoginStatus`, {
         method: 'GET',
         credentials: 'include', // Include cookies in the request
         headers: { 'Content-Type': 'application/json' },
@@ -272,18 +241,11 @@ async function isLoggedIn() {
 
     document.getElementById('loginContent').style.display = 'none';
     document.getElementById('clockInContent').style.display = 'block';
-    // document.getElementById('slotTitle').style.display = 'none';
-
-    // const selectedSlot = localStorage.getItem('slotID');
-    // if (selectedSlot) {
-    //     console.log("Restored selected slot: ", selectedSlot);
-    //     // Perform any necessary actions with the restored slot (e.g., preselect it)
-    // }
 
     clockInTime = localStorage.getItem('clockIn');
     clockOutTime = localStorage.getItem('clockOut');
 
-    if (clockInTime == "undefined" && clockOutTime == "undefined") {
+    if (clockInTime == "undefined") {
         console.log("Entered")
         document.getElementById('slotTitle').innerHTML = `<h1>Clock in for ${localStorage.getItem('slotName')}</h1>`;
         document.getElementById('clockInButton').style.display = 'inline';
@@ -298,7 +260,7 @@ async function isLoggedIn() {
     const { message, user_id } = await response.json();
     userID = user_id;
 
-    console.log("user id : ", userID);
+    console.log("userID: ", userID);
 }
 
 async function clockIn() {
@@ -312,7 +274,7 @@ async function clockIn() {
     const bodyData =
         {"userID": `${userID}`,"ClockInTime": `${timeNow}`, "ClockInImg": `${ClockInImg}`};
 
-    const response = await fetch('http://localhost:8082/slot/WebUpdateBooking', {
+    const response = await fetch(`${common.apiUrl}/slot/WebUpdateBooking`, {
         method: 'PUT',
         credentials: 'include', // Include cookies in the request
         headers: { 'Content-Type': 'application/json' },
@@ -331,17 +293,12 @@ async function clockIn() {
     alert("you have clocked in");
 }
 
-
-
 async function clockOut() {
     if (data == null) {
         alert('you cannot clock out without a photo');
         return;
     }
 
-    // selectedSlot = localStorage.getItem('slotID');
-    // clockInTime = localStorage.getItem('clockIn');
-    // const formattedClockIn = formatDateTimeWithTime(localStorage.getItem('clockIn'));
     const ClockOutImg = data.split(",")[1];
 
     const timeNow = getCurrentDateTime();
@@ -349,7 +306,7 @@ async function clockOut() {
         {"userID": `${userID}`, "ClockOutTime": `${timeNow}`, "ClockOutImg": `${ClockOutImg}`};
     
 
-    const response = await fetch(`http://localhost:8082/slot/WebUpdateBooking`, {
+    const response = await fetch(`${common.apiUrl}/slot/WebUpdateBooking`, {
         method: 'PUT',
         credentials: 'include', // Include cookies in the request
         headers: { 'Content-Type': 'application/json' },
@@ -358,7 +315,7 @@ async function clockOut() {
 
     if (!response.ok) {
         const error = await response.json();
-        console.error('Error updating clock-in time: ', error);
+        console.error('Error updating clock-out time: ', error);
         alert("Clocking out failed. : "+ error);
         window.location.reload();
         return
@@ -403,7 +360,7 @@ if (navigator.mediaDevices.getUserMedia) {
             video.srcObject = stream;
         })
         .catch(function (error) {
-            console.log("Something went wrong: Camera object not found");
+            console.log("Something went wrong: Camera object not found: " + error);
         });
 }
 
@@ -419,7 +376,7 @@ function takePicture() {
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    data = canvas.toDataURL("image/jpeg");
+    data = canvas.toDataURL("image/jpeg", 1);
     photo.setAttribute("src", data);
 
     console.log(data);

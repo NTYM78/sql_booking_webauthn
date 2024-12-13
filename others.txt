@@ -1,0 +1,3 @@
+font type used for 'BOOKING' in the logo:
+Eurostile Next Paneuropean Extended Bold
+

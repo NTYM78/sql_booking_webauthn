@@ -8,6 +8,9 @@
     <title>SQL Booking - Manager Login</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Google Fonts: Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <!-- css -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -17,7 +20,10 @@
         .container {
             max-width: 800px;
         }
-
+        .btn {
+            /* padding: 15px; */
+            font-size: 1.2rem;
+        }
         .center-content {
             height: calc(100vh - 200px);
             /* Subtracting the banner height */
@@ -42,19 +48,19 @@
         #registerVideoContainer {
             margin: 0px auto;
             width: 500px;
-            height: auto;
+            height: 375px;
             display: flex;
             max-width: 100%;
             padding: 0; /* Ensure no extra padding */
-            box-sizing: border-box;
-            border: 2px #333 solid;
+            /* box-sizing: border-box;
+            border: 2px #333 solid; */
         }
 
         #registerVideoElement, #registerCanvas {
             max-width: 100%;
-            width: 100%;
-            height: auto;
-            background-color: #666;
+            width: 500px;
+            height: 375px;
+            /* background-color: #666; */
         }
 
         #registerCanvas {
@@ -63,7 +69,7 @@
 
         #registerOutput img {
             width: 500px;
-            height: auto;
+            height: 375px;
             border: 2px solid #333;
         }
 
@@ -87,19 +93,16 @@
 <body>
     <!-- Bootstrap-style banner -->
     <!-- <div style="background-color: #5e1693;" class="text-white text-center p-5 mb-4"> -->
-    <div style="background: linear-gradient(340deg, rgba(30,8,245,1) 0%, rgba(120,5,216,1) 33%, rgba(141,4,209,1) 50%, rgba(175,3,198,1) 67%,rgba(254,0,172,1) 100%);"
+    <div style="background: linear-gradient(330deg, rgba(129,8,245,1) 0%, rgba(191,7,124,1) 50%, rgba(254,6,2,1) 100%);"
         class="text-white text-center p-5 mb-4">
         <div class="container d-flex justify-content-center align-item-center">
             <div>
-                <a href="/"><img src="resources/images/sql-logo.png" alt="Logo" class="sqlLogo"></a>
-            </div>
-            <div>
-                <!-- <h1 class="display-3 mb-0">Booking</h1> -->
-                <a href="/"><img src="resources/images/booking-logo.png" alt="Logo" class="bookingLogo"></a>
+                <a href="/"><img src="resources/images/sql-booking-logo.png" alt="Logo" class="sqlLogo"></a>
             </div>
         </div>
     </div>
 
+    <!-- Manager login page content -->
     <div id="managerLoginContent">
         <div class="container center-content">
             <div class="card p-4 shadow">
@@ -116,6 +119,7 @@
         </div>
     </div>
 
+    <!-- Register page content  -->
     <div id="registerUserContent">
         <div id="credentialList" class="container mt-5">
             <h1 class="text-center">Manage User</h1>
@@ -186,9 +190,6 @@
                         <div class="container mt-4 text-center">
                             <button class="btn btn-primary" id="takeInitialPhotoButton">Take photo</button>
                         </div>
-                        <!-- <div class="container mt-5">
-                            <button class="btn btn-primary w-100" id="registerButton">Register</button>
-                        </div> -->
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -204,6 +205,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <!-- Custom JS for WebAuthn -->
     <script src="static/index.es5.umd.min.js"></script>
+    <script src="static/common.js"></script>
     <script src="static/webauthn.js"></script>
 </body>
 
